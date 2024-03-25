@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  glue_jupyter_lab:
+    image: amazon/aws-glue-libs:glue_libs_4.0.0_image_01
+    volumes:
+      - ~/.aws:/home/glue_user/.aws:ro # 호스트의 ~/.aws 디렉토리를 컨테이너의 /home/glue_user/.aws 에 읽기 전용으로 연결 (aws configure 명령으로 넣어놓은 region, access_key등등 로드하는 곳)
+      - ./jupyter_workspace:/home/glue_user/workspace/jupyter_workspace/
+    environment:
+      - AWS_PROFILE=$AWS_PROFILE_NAME # AWS IAM에 정의해놓은 본인의 이름을 aws configure
+      - DISABLE_SSL=true # SSL 비활성해 해야 로컬(http://127.0.0.1)에서 작업 가능
+    ports:
+      - "4040:4040"
+      - "18080:18080"
+      - "8998:8998"
+      - "8888:8888"
+    command: ["/home/glue_user/jupyter/jupyter_start.sh"] # 컨테이너 실행 시 실행할 명령어 지정
+    restart: unless-stopped # 컨테이너 종료 시 자동으로 다시 시작 (옵션)
+
