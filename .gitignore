@@ -122,7 +122,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-
+data
 *.zip
 aws
 jupyter_workspace

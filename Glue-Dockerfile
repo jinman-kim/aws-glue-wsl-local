@@ -1,0 +1,21 @@
+FROM amazon/aws-glue-libs:glue_libs_4.0.0_image_01
+
+# Chrome 설치를 위한 필요한 패키지 설치
+RUN yum update -y && \
+    yum install -y wget \
+    yum-utils \
+    unzip
+
+# Google Chrome 설치
+RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm && \
+    yum install -y ./google-chrome-stable_current_*.rpm && \
+    rm ./google-chrome-stable_current_*.rpm
+
+# ChromeDriver 설치
+# ChromeDriver의 버전은 설치된 Chrome 버전과 호환되어야 합니다.
+RUN CHROMEDRIVER_VERSION=$(curl -sS chromedriver.storage.googleapis.com/LATEST_RELEASE) && \
+    wget -N http://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip -P ~/ && \
+    unzip ~/chromedriver_linux64.zip -d ~/ && \
+    rm ~/chromedriver_linux64.zip && \
+    mv -f ~/chromedriver /usr/local/bin/chromedriver && \
+    chmod 0755 /usr/local/bin/chromedriver

@@ -1,0 +1,113 @@
+{
+  "Comment": "A description of my state machine",
+  "StartAt": "Parallel",
+  "States": {
+    "Parallel": {
+      "Type": "Parallel",
+      "Branches": [
+        {
+          "StartAt": "작업시작",
+          "States": {
+            "작업시작": {
+              "Type": "Task",
+              "Parameters": {
+                "Name": "kimjm_test_wf"
+              },
+              "Resource": "arn:aws:states:::aws-sdk:glue:startWorkflowRun",
+              "Next": "폴링 대기 트리거(20s)",
+              "ResultPath": "$.workflowRun",
+              "Comment": "kimjm_test_wf 워크플로를 시작합니다."
+            },
+            "폴링 대기 트리거(20s)": {
+              "Type": "Wait",
+              "Seconds": 20,
+              "Next": "작업 모니터링(폴링)",
+              "Comment": "kimjm_test_wf 워크플로우를 모니터링 하는\n\"작업 모니터링(폴링)\" 작업에 대기시간을 부여합니다."
+            },
+            "작업 모니터링(폴링)": {
+              "Type": "Task",
+              "Next": "모니터 결과 확인",
+              "Parameters": {
+                "Name": "kimjm_test_wf",
+                "RunId.$": "$.workflowRun.RunId"
+              },
+              "Resource": "arn:aws:states:::aws-sdk:glue:getWorkflowRun",
+              "OutputPath": "$",
+              "ResultPath": "$.workflowRunDetails",
+              "Comment": "kimjm_test_wf\n$.workflowRun.RunId \n의 워크플로우 상태를 감시합니다"
+            },
+            "모니터 결과 확인": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Variable": "$.workflowRunDetails.Run.Status",
+                  "StringMatches": "COMPLETED",
+                  "Next": "성공"
+                },
+                {
+                  "Variable": "$.workflowRunDetails.Run.Status",
+                  "StringMatches": "FAILED",
+                  "Next": "실패"
+                },
+                {
+                  "Variable": "$.workflowRunDetails.Run.Status",
+                  "StringMatches": "SUCCEEDED",
+                  "Next": "성공"
+                },
+                {
+                  "Variable": "$.workflowRunDetails.Run.Status",
+                  "StringMatches": "RUNNING",
+                  "Next": "폴링 대기 트리거(20s)"
+                }
+              ]
+            },
+            "성공": {
+              "Type": "Succeed"
+            },
+            "실패": {
+              "Type": "Fail"
+            }
+          }
+        },
+        {
+          "StartAt": "람다 기동 대기(30s)",
+          "States": {
+            "람다 기동 대기(30s)": {
+              "Type": "Wait",
+              "Seconds": 30,
+              "Next": "워크플로 감시 람다"
+            },
+            "워크플로 감시 람다": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "OutputPath": "$.Payload",
+              "Parameters": {
+                "Payload.$": "$",
+                "FunctionName": "arn:aws:lambda:ap-northeast-2:721883311572:function:check-glue-status:$LATEST"
+              },
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 1,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 2
+                }
+              ],
+              "Next": "Success",
+              "Comment": "kimjm_test_wf의 RUNNING 상태인 워크플로가 있다면\n이를 20초 단위로 감시하여 COMPLETED가 됐을 때, \nSNS 토픽에 메세지를 발행합니다. "
+            },
+            "Success": {
+              "Type": "Succeed"
+            }
+          }
+        }
+      ],
+      "End": true
+    }
+  }
+}

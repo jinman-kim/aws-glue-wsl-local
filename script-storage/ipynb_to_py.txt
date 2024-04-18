@@ -1,0 +1,23 @@
+.ipynb 확장자의 노트북 파일을 .py 파일로 바꾸는법
+
+바꾸는 이유
+1. .ipynb에서 생성한 함수, 클래스를 다시 사용하려고
+2. spark-submit 으로 .py 파일 자체를 실행하려고
+
+바꾸는 방법
+1. 컨테이너에 진입
+    docker ps
+    docker exec -it <컨테이너 이름> bash
+2. 컨테이너 내부에서 의존성 설치
+    pip install nbconvert
+3. 아래 커맨드 실행(파일 경로 고려해서)
+    jupyter nbconvert --to <.ipynb파일 이름>
+4. 확인
+    ls | grep <파일 이름>
+
+주의 사항
+1. 마크다운, 텍스트, 매직커맨드가 raw하게 변환될 수 있어서 .py 파일로 변경하고 필요없는 line 삭제
+
+ETC...
+1. 주피터랩에서 단계별로 실행하던 코드를 아래의 spark-submit 명령어로 한번에 실행할 수 있다.
+    spark-submit <변경한 .py 파일>
