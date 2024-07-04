@@ -20,19 +20,54 @@ services:
     networks:
       - data-lake-network
 
-  postgres:
-    image: ankane/pgvector:latest
-    ports:
-      - "5436:5432"
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.9
+    container_name: langchain-es
     environment:
-      POSTGRES_USER: id_kimjm
-      POSTGRES_PASSWORD: pw_kimjm
-      POSTGRES_DB: "postgres"
-      TZ: Asia/Seoul
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
     volumes:
-      - ./data:/var/lib/postgresql/data
+      - esdata:/usr/share/elasticsearch/data
     networks:
       - data-lake-network
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: langchain-pgvector
+    environment:
+      POSTGRES_USER: langchain
+      POSTGRES_PASSWORD: langchain
+      POSTGRES_DB: langchain
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+    networks:
+      - data-lake-network
+    command: >
+      bash -c "psql -U langchain -d langchain -f /docker-entrypoint-initdb.d/create_pgvector_table.sql"
+
+  # postgres:
+  #   image: ankane/pgvector:latest
+  #   ports:
+  #     - "5436:5432"
+  #   environment:
+  #     POSTGRES_USER: id_kimjm
+  #     POSTGRES_PASSWORD: pw_kimjm
+  #     POSTGRES_DB: "postgres"
+  #     TZ: Asia/Seoul
+  #   volumes:
+  #     - ./data:/var/lib/postgresql/data
+  #   networks:
+  #     - data-lake-network
+
+volumes:
+  esdata:
+    driver: local
+  pgdata:
+    driver: local
 
 networks:
   data-lake-network:
