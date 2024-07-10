@@ -41,13 +41,13 @@ services:
       POSTGRES_PASSWORD: langchain
       POSTGRES_DB: langchain
     ports:
-      - "5432:5432"
+      - "6432:5432"
     volumes:
       - ./pgdata:/var/lib/postgresql/data
     networks:
       - data-lake-network
-    command: >
-      bash -c "psql -U langchain -d langchain -f /docker-entrypoint-initdb.d/create_pgvector_table.sql"
+    # command: >
+    #   bash -c "psql -U langchain -d langchain -f /docker-entrypoint-initdb.d/create_pgvector_table.sql"
 
   # postgres:
   #   image: ankane/pgvector:latest
